@@ -27,43 +27,39 @@ def clean_pgn(filename):
     # Remove annotations like !, ?, !!, ??, ?!, !?
     content = content.replace('!', '').replace('?', '')
 
+    # Split content into tokens (moves and results)
     tokens = content.replace('\n', ' ').split()
     moves = []
+    result = None
 
     for token in tokens:
-        if token.endswith('.'):
-            continue
-        elif token in ['1-0', '0-1', '1/2-1/2', '*']:
-            moves.append(token)
-        else:
+        # If we encounter a result (1-0, 0-1, 1/2-1/2), save it to append later
+        if token in ['1-0', '0-1', '1/2-1/2']:
+            result = token
+        elif not token.endswith('.'):
             moves.append(token)
 
-    result = []
+    # Combine the moves into a clean sequence with move numbers
+    cleaned_moves = []
     move_number = 1
     i = 0
     while i < len(moves):
         if i + 1 < len(moves):
-            result.append(f"{move_number}. {moves[i]} {moves[i+1]}")
+            cleaned_moves.append(f"{move_number}. {moves[i]} {moves[i+1]}")
             i += 2
         else:
-            result.append(f"{move_number}. {moves[i]}")
+            cleaned_moves.append(f"{move_number}. {moves[i]}")
             i += 1
         move_number += 1
 
-    # Assuming `result` contains the list of cleaned moves, and `final_output` is where the final PGN will be saved
-    final_output = ' '.join(result)
+    # Join all cleaned moves into the final output
+    final_output = ' '.join(cleaned_moves)
 
-    # Remove any trailing move number (e.g., "25.") if the last item is a move number
-    if result and re.match(r'^\d+\.$', result[-1]):
-        result.pop()
+    # Append the result (if any) only once at the end of the PGN
+    if result:
+        final_output += f' {result}'
 
-    # Only append the result (like '1-0', '0-1', '1/2-1/2') if it's not already at the end
-    possible_results = ['1-0', '0-1', '1/2-1/2']
-    if moves and moves[-1] in possible_results:
-        if not final_output.endswith(moves[-1]):
-            final_output += f' {moves[-1]}'
-
-    # Final output with cleaned moves and possibly appended result
+    # Write the cleaned PGN to a file
     with open('output_cleaned.pgn', 'w', encoding='utf-8') as f:
         f.write(final_output)
 
