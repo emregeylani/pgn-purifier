@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PGN Purifier</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f0f0;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #2e3d49;
+    }
+
+    textarea {
+      width: 90%;
+      height: 300px;
+      font-size: 1em;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: #fff;
+    }
+
+    .options {
+      margin-bottom: 15px;
+    }
+
+    .options label {
+      margin-right: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      border: none;
+      background-color: #005b96;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .output {
+      width: 90%;
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>PGN Purifier</h1>
+  <textarea id="inputPgn" placeholder="Paste your PGN here..."></textarea>
+  <div class="options">
+    <label><input type="checkbox" id="keepAnnotations" /> Keep annotations (!, ?)</label>
+    <label hidden><input type="checkbox" id="keepVariations"/> Keep variations ((...))</label>
+  </div>
+  <button onclick="purifyPGN()">Purify</button>
+  <div class="output" id="output"></div>
+
+  <script>
+    function removeBlocks(text, openChar, closeChar) {
+      let result = '';
+      let depth = 0;
+      for (let c of text) {
+        if (c === openChar) {
+          depth++;
+        } else if (c === closeChar) {
+          if (depth > 0) depth--;
+        } else if (depth === 0) {
+          result += c;
+        }
+      }
+      return result;
+    }
+
+    function purifyPGN() {
+      let input = document.getElementById('inputPgn').value;
+      const keepAnnotations = document.getElementById('keepAnnotations').checked;
+      const keepVariations = document.getElementById('keepVariations').checked;
+
+      // Remove curly {}, square [], and (possibly) round () blocks
+      input = removeBlocks(input, '{', '}');
+      input = removeBlocks(input, '[', ']');
+      if (!keepVariations) input = removeBlocks(input, '(', ')');
+
+      if (!keepAnnotations) {
+        input = input.replace(/[!?]/g, '');
+      }
+
+      const tokens = input.replace(/\n/g, ' ').split(/\s+/).filter(Boolean);
+      let moves = [];
+      let resultToken = '';
+
+      for (let token of tokens) {
+        if (/^(1-0|0-1|1\/2-1\/2|\*)$/.test(token)) {
+          resultToken = token;
+        } else if (!/\d+\./.test(token)) {
+          moves.push(token);
+        }
+      }
+
+      let output = '';
+      let moveNum = 1;
+      for (let i = 0; i < moves.length; i += 2) {
+        output += `${moveNum}. ${moves[i] || ''} ${moves[i + 1] || ''} `;
+        moveNum++;
+      }
+
+      output = output.trim();
+      if (resultToken) output += ` ${resultToken}`;
+
+      document.getElementById('output').textContent = output;
+    }
+  </script>
+</body>
+</html>
+
