@@ -49,6 +49,12 @@
       font-family: 'Fira Mono', monospace;
       box-shadow: 0 0 0 1px #444;
     }
+    
+   .output {
+    background-color: #f9f9f9;
+    overflow-y: auto;
+    height: 280px;
+  }
 
     .options {
       display: flex;
@@ -114,15 +120,34 @@
 <body>
   <h1>Chess PGN Purifier</h1>
   <hr />
+<div class="description" style="margin-right: 15em; margin-left: 15em; font-size: 1.1em; line-height: 1.5;">
+  <p>
+    🧹 <strong>Chess PGN Purifier</strong> is a minimalist tool designed to clean up messy or annotated PGN files and make them ready for analysis or training. Whether you're prepping a game for Lichess study, converting annotated games to clean lines, or just want to focus on the pure moves — this tool helps you do it in seconds.
+  </p>
+</div>  
+<hr />
   <textarea id="inputPgn" placeholder="Paste your PGN here that you want to purify..."></textarea>
   <div class="options">
     <label><input type="checkbox" id="keepAnnotations" /> Keep annotations (!, ?)</label>
     <label hidden><input type="checkbox" id="keepVariations" /> Keep variations ((...))</label>
   </div>
   <button onclick="purifyPGN()">Purify</button>
-  <div class="output" id="output"></div>
+  <div class="output" id="output" hidden></div>
+  <br/>
+<div class="button-group">
+  <button id="copyButton" onclick="copyOutput()" hidden>Copy Output</button>
+</div>
 
-  <script>
+<script>
+  function copyOutput() {
+    const output = document.getElementById('output').textContent;
+    navigator.clipboard.writeText(output).then(() => {
+      alert('Output copied to clipboard!');
+    }, () => {
+      alert('Failed to copy.');
+    });
+  }
+
   function removeBlocks(text, openChar, closeChar) {
     let result = '';
     let depth = 0;
@@ -179,11 +204,16 @@
 
     output = output.trim();
     if (resultToken) output += ` ${resultToken}`;
-
-    document.getElementById('output').textContent = output;
+    
+    const outputArea = document.getElementById('output');
+    outputArea.textContent = output;        
+    outputArea.removeAttribute("hidden");
+    
+    const copyButton = document.getElementById('copyButton');
+    copyButton.removeAttribute("hidden");    
+    
   }
 </script>
 
 </body>
 </html>
-
