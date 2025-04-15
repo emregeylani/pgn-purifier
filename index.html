@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PGN Purifier</title>
+  <title>Chess PGN Purifier</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
@@ -102,8 +102,8 @@
   </style>
 </head>
 <body>
-  <h1>Lichess PGN Purifier</h1>
-  <textarea id="inputPgn" placeholder="Paste your PGN here..."></textarea>
+  <h1>Chess PGN Purifier</h1>
+  <textarea id="inputPgn" placeholder="Paste your PGN here that you want to purify..."></textarea>
   <div class="options">
     <label><input type="checkbox" id="keepAnnotations" /> Keep annotations (!, ?)</label>
     <label hidden><input type="checkbox" id="keepVariations" /> Keep variations ((...))</label>
@@ -111,61 +111,66 @@
   <button onclick="purifyPGN()">Purify</button>
   <div class="output" id="output"></div>
   <script>
-    function removeBlocks(text, openChar, closeChar) {
-      let result = '';
-      let depth = 0;
-      for (let c of text) {
-        if (c === openChar) {
-          depth++;
-        } else if (c === closeChar) {
-          if (depth > 0) depth--;
-        } else if (depth === 0) {
-          result += c;
-        }
+  function removeBlocks(text, openChar, closeChar) {
+    let result = '';
+    let depth = 0;
+    for (let c of text) {
+      if (c === openChar) {
+        depth++;
+      } else if (c === closeChar) {
+        if (depth > 0) depth--;
+      } else if (depth === 0) {
+        result += c;
       }
-      return result;
+    }
+    return result;
+  }
+
+  function purifyPGN() {
+    let input = document.getElementById('inputPgn').value;
+    const keepAnnotations = document.getElementById('keepAnnotations').checked;
+    const keepVariations = document.getElementById('keepVariations').checked;
+
+    // 1. Remove comments, headers, variations
+    input = removeBlocks(input, '{', '}');
+    input = removeBlocks(input, '[', ']');
+    if (!keepVariations) input = removeBlocks(input, '(', ')');
+
+    // 2. Remove NAGs like $16, $1 etc.
+    input = input.replace(/\$\d+/g, '');
+
+    // 3. Remove annotation symbols (!, ?, !!, ?!)
+    if (!keepAnnotations) {
+      input = input.replace(/[!?]+/g, '');
     }
 
-    function purifyPGN() {
-      let input = document.getElementById('inputPgn').value;
-      const keepAnnotations = document.getElementById('keepAnnotations').checked;
-      const keepVariations = document.getElementById('keepVariations').checked;
+    // 4. Normalize whitespace
+    const tokens = input.replace(/\n/g, ' ').split(/\s+/).filter(Boolean);
 
-      // Remove curly {}, square [], and (possibly) round () blocks
-      input = removeBlocks(input, '{', '}');
-      input = removeBlocks(input, '[', ']');
-      if (!keepVariations) input = removeBlocks(input, '(', ')');
-
-      if (!keepAnnotations) {
-        input = input.replace(/[!?]/g, '');
+    // 5. Reconstruct moves, ignoring move numbers
+    let moves = [];
+    let resultToken = '';
+    for (let token of tokens) {
+      if (/^(1-0|0-1|1\/2-1\/2|\*)$/.test(token)) {
+        resultToken = token;
+      } else if (!/^\d+\.+$/.test(token)) { // match both "1." and "1..."
+        moves.push(token);
       }
-
-      const tokens = input.replace(/\n/g, ' ').split(/\s+/).filter(Boolean);
-      let moves = [];
-      let resultToken = '';
-
-      for (let token of tokens) {
-        if (/^(1-0|0-1|1\/2-1\/2|\*)$/.test(token)) {
-          resultToken = token;
-        } else if (!/\d+\./.test(token)) {
-          moves.push(token);
-        }
-      }
-
-      let output = '';
-      let moveNum = 1;
-      for (let i = 0; i < moves.length; i += 2) {
-        output += `${moveNum}. ${moves[i] || ''} ${moves[i + 1] || ''} `;
-        moveNum++;
-      }
-
-      output = output.trim();
-      if (resultToken) output += ` ${resultToken}`;
-
-      document.getElementById('output').textContent = output;
     }
-  </script>
+
+    // 6. Format as proper PGN
+    let output = '';
+    for (let i = 0; i < moves.length; i += 2) {
+      const moveNum = Math.floor(i / 2) + 1;
+      output += `${moveNum}. ${moves[i] || ''} ${moves[i + 1] || ''} `;
+    }
+
+    output = output.trim();
+    if (resultToken) output += ` ${resultToken}`;
+
+    document.getElementById('output').textContent = output;
+  }
+</script>
+
 </body>
 </html>
-
-
